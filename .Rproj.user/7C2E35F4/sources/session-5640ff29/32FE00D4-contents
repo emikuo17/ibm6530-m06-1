@@ -1,0 +1,177 @@
+---
+title: "ODI Grips: LLM Recommendation Evaluation"
+subtitle: "Proposal Presentation"
+author: "Emily Kuo"
+institute: "IBM 6530, Cal Poly Pomona"
+date: today
+format: 
+  revealjs:
+    theme: serif
+    width: 1600
+    height: 900
+    footer: "ODI Grips LLM Evaluation"
+    transition: slide
+    transition-speed: default
+    incremental: false
+    toc: true
+    toc-depth: 1
+    slide-number: true
+    scrollable: true
+    smaller: true
+    code-fold: false
+    code-overflow: wrap
+    number-sections: false
+    number-depth: 5
+    embed-resources: true
+    css: styles.css
+editor: visual
+execute: 
+  echo: true
+  freeze: auto
+---
+
+
+# Introduction
+ODI Grips has many grip models with overlapping use cases (trail, enduro, DH, comfort, vibration reduction).  
+Customers ask questions that require matching needs to product specs, and we want the recommendation output to be reliable.
+
+::: notes
+Mention: you already built product-spec dataset + chatbot and n8n email workflow.
+The pain point: recommendations vary by prompt and model.
+:::
+
+# Problem statement
+Current recommendation outputs can be inconsistent:
+- Different prompts produce different recommendations for the same question
+- Different LLM backends may change accuracy and reasoning quality
+- Missing or inconsistent product attributes make it harder to match correctly
+
+::: notes
+Tie to your real experience: scraped specs sometimes hallucinated, and official pages don’t standardize fields.
+:::
+
+# One Analytics Objective
+## AO: What I will test
+Determine whether prompt structure, LLM backend, and their interaction significantly affect recommendation accuracy for ODI Grips product matching.
+
+::: {.callout-note}
+Accuracy is defined as: recommended product matches at least one acceptable option in the gold standard set.
+:::
+
+::: notes
+Say it simply: “I’m not just building the chatbot. I’m testing what makes it accurate.”
+:::
+
+# Why this matters
+::: {.callout-important}
+If we can identify the best prompt + model setup, ODI can scale customer support with more confidence and reduce manual review time.
+:::
+
+::: {.incremental}
+- Higher trust in recommendations
+- Faster responses through automation (chatbot + email workflow)
+- Clear evidence-based choice of LLM configuration
+:::
+
+# Literature / theory
+## Consumer behavior lens
+This project aligns with how customers reduce uncertainty before purchase:
+- Shoppers seek information and reassurance when products look similar
+- Clear feature-to-need matching supports decision confidence
+
+## Prior work (high-level)
+- LLM outputs vary by prompt format and model choice
+- Retrieval + clean product data reduces hallucination risk
+
+::: notes
+Keep it high-level if you don’t want to cite heavy papers yet.
+You can add 2–4 sources on LLM eval + prompt effects later.
+:::
+
+# Data and Sampling
+## Data sources
+- ODI grip product dataset (spec attributes + descriptions)
+- Gold standard Q&A set (acceptable answer set per question)
+- Additional questions from reddit/customer wording (expanded sample)
+
+## Sampling unit
+One “question instance” evaluated across:
+- multiple prompts
+- multiple LLM backends
+
+::: notes
+Explain repeated measures: same question tested under different conditions.
+:::
+
+# Data wrangling plan
+## What I need clean + consistent
+:::: columns
+::: column
+### Product table
+- product_id
+- model name
+- key attributes (locking type, diameter, length, damping, pattern)
+- category tags
+:::
+
+::: column
+### Question table
+- question_id
+- question text
+- gold standard products (set)
+- difficulty notes (optional)
+:::
+::::
+
+::: notes
+Mention: standardization issues across sites, missing fields, and how client input helps.
+:::
+
+# Measures
+## Main outcome
+Binary recommendation accuracy:
+- 1 = at least one recommended product matches gold standard set
+- 0 = otherwise
+
+## Secondary (optional)
+- Reasoning quality score (rubric)
+- Hallucination flag (spec not supported by dataset)
+
+# Methods
+## Evaluation design
+A structured experiment:
+- Factor 1: Prompt structure (A vs B vs C…)
+- Factor 2: LLM backend (Model 1 vs Model 2…)
+- Repeated across the same question set
+
+## Model (if you include stats)
+Logistic mixed-effects model:
+- Fixed effects: prompt, LLM, interaction
+- Random effect: question_id
+
+::: notes
+Keep it understandable. You can say: “This controls for question difficulty.”
+:::
+
+# Reproducible chart (example)
+This slide is just to satisfy the “reproducible chart/table” requirement.  
+Later, you will swap in your real evaluation CSV.
+
+```{r}
+library(tidyverse)
+
+results <- tibble(
+  prompt = rep(c("Prompt A","Prompt B"), each = 2),
+  llm = rep(c("Model 1","Model 2"), times = 2),
+  accuracy = c(0.62, 0.71, 0.68, 0.77)
+)
+
+ggplot(results, aes(x = llm, y = accuracy)) +
+  geom_col() +
+  facet_wrap(~prompt) +
+  labs(
+    title = "Example: Accuracy by Prompt and LLM",
+    x = "LLM backend",
+    y = "Accuracy"
+  ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))
